@@ -1,0 +1,13 @@
+[package]
+name = "iced_flatlist"
+version = "0.1.0"
+edition = "2021"
+authors = ["Luiz Otavio Cardi Vidoto <luiz.vidoto@hotmail.com>"]
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+iced = { path="../iced", features = ["tokio", "debug"] }
+iced_native = { path="../iced/native" }
+iced_lazy = { path="../iced/lazy" }
+ouroboros = "0.15.5"
