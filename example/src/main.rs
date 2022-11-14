@@ -65,7 +65,7 @@ impl Sandbox for Example {
 
     fn new() -> Self {
         let mut users: Vec<User> = vec![];
-        for n in 0..100_000 {
+        for n in 0..100_000_0 {
             users.push(User::new(n));
         }
         Example { users }
