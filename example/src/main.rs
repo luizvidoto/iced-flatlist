@@ -47,7 +47,7 @@ impl User {
         .width(Length::Fill)
         .into()
     }
-    pub fn view(&self) -> Element<Message> {
+    pub fn view(&self, row_h: u16) -> Element<Message> {
         row![
             text(self.n).width(Length::Fill),
             text(self.order_id).width(Length::Fill),
@@ -56,6 +56,7 @@ impl User {
             button(text("Details")).on_press(Message::DetailsPress(self.to_owned()))
         ]
         .width(Length::Fill)
+        .height(Length::Units(row_h))
         .into()
     }
 }
@@ -84,13 +85,13 @@ impl Sandbox for Example {
     }
 
     fn view(&self) -> Element<Message> {
-        let row_h = 50.0;
+        let row_h = 40.0;
         let lazy_content = iced_lazy::responsive(move |size| {
             flatlist(size, row_h, &self.users, move |users| {
                 users
                     .iter()
                     .fold(column![User::header()], |column, user| {
-                        column.push(user.view())
+                        column.push(user.view(row_h as u16))
                     })
                     .into()
             })
