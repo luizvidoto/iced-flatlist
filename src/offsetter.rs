@@ -15,8 +15,8 @@ use std::ops::Deref;
 
 #[allow(missing_debug_implementations)]
 pub struct Offsetter<'a, Message, Renderer> {
-    velocity: f32,
     size: Size,
+    scroll_by: f32,
     view: Box<dyn Fn(f32) -> Element<'a, Message, Renderer> + 'a>,
     content: RefCell<Content<'a, Message, Renderer>>,
 }
@@ -27,12 +27,12 @@ where
 {
     pub fn new(
         size: Size,
-        velocity: f32,
+        scroll_by: f32,
         view: impl Fn(f32) -> Element<'a, Message, Renderer> + 'a,
     ) -> Self {
         Self {
             size,
-            velocity,
+            scroll_by,
             view: Box::new(view),
             content: RefCell::new(Content {
                 offset: 0.0,
@@ -99,19 +99,20 @@ struct State {
 }
 
 pub struct ScrollerState {
-    offset: f32,
+    offset_pixels: f32,
     height: f32,
 }
 impl ScrollerState {
     pub fn new(height: f32) -> Self {
         Self {
-            offset: 0.0,
+            offset_pixels: 0.0,
             height,
         }
     }
     pub fn scroll(&mut self, delta_y: f32) {
-        self.offset = (self.offset - delta_y).max(0.0).min(self.height);
-        // println!("offset: {}", self.offset);
+        // println!("delta_y: {}", delta_y);
+        self.offset_pixels = (self.offset_pixels - delta_y).max(0.0).min(self.height);
+        // println!("offset: {}", self.offset_pixels);
     }
 }
 
@@ -163,11 +164,11 @@ where
                     match delta {
                         mouse::ScrollDelta::Lines { y, .. } => {
                             // println!("lines: {}", y);
-                            state.scroller.scroll(y * 60.0 * self.velocity);
+                            state.scroller.scroll(y * self.scroll_by);
                         }
                         mouse::ScrollDelta::Pixels { y, .. } => {
                             // println!("pixels: {}", y);
-                            state.scroller.scroll(y * self.velocity);
+                            state.scroller.scroll(y);
                         }
                     }
 
@@ -207,7 +208,7 @@ where
             renderer,
             layout,
             self.size,
-            state.scroller.offset,
+            state.scroller.offset_pixels,
             &self.view,
             |tree, renderer, layout, element| {
                 element.as_widget_mut().on_event(
@@ -243,7 +244,7 @@ where
             renderer,
             layout,
             self.size,
-            state.scroller.offset,
+            state.scroller.offset_pixels,
             &self.view,
             |tree, renderer, layout, element| {
                 element.as_widget().draw(
@@ -275,7 +276,7 @@ where
             renderer,
             layout,
             self.size,
-            state.scroller.offset,
+            state.scroller.offset_pixels,
             &self.view,
             |tree, renderer, layout, element| {
                 element.as_widget().mouse_interaction(
@@ -306,7 +307,7 @@ where
                     tree,
                     renderer,
                     layout.bounds().size(),
-                    state.scroller.offset,
+                    state.scroller.offset_pixels,
                     &self.view,
                 );
 

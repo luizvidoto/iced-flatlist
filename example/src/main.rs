@@ -65,7 +65,7 @@ impl Sandbox for Example {
 
     fn new() -> Self {
         let mut users: Vec<User> = vec![];
-        for n in 0..100_000_0 {
+        for n in 0..100_000 {
             users.push(User::new(n));
         }
         Example { users }
@@ -84,10 +84,9 @@ impl Sandbox for Example {
     }
 
     fn view(&self) -> Element<Message> {
-        let row_height = 50.0;
-        let velocity = 0.01;
+        let row_h = 50.0;
         let lazy_content = iced_lazy::responsive(move |size| {
-            flatlist(size, row_height, velocity, &self.users, move |users| {
+            flatlist(size, row_h, &self.users, move |users| {
                 users
                     .iter()
                     .fold(column![User::header()], |column, user| {
