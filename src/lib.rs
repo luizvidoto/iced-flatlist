@@ -1,7 +1,6 @@
 pub mod flatlist;
-pub mod offsetter;
-
-use offsetter::Offsetter;
+pub mod scroller;
 
 // #[doc(no_inline)]
-pub use flatlist::flatlist;
+pub use flatlist::{flatlist, get_start_end_pos};
+pub use scroller::Scroller;

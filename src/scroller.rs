@@ -1,3 +1,4 @@
+// use iced::widget::scrollable;
 use iced::{touch, Event};
 use iced_native::event;
 use iced_native::layout::{self, Layout};
@@ -14,14 +15,14 @@ use std::marker::PhantomData;
 use std::ops::Deref;
 
 #[allow(missing_debug_implementations)]
-pub struct Offsetter<'a, Message, Renderer> {
+pub struct Scroller<'a, Message, Renderer> {
     size: Size,
     scroll_by: f32,
     view: Box<dyn Fn(f32) -> Element<'a, Message, Renderer> + 'a>,
     content: RefCell<Content<'a, Message, Renderer>>,
 }
 
-impl<'a, Message, Renderer> Offsetter<'a, Message, Renderer>
+impl<'a, Message, Renderer> Scroller<'a, Message, Renderer>
 where
     Renderer: iced_native::Renderer,
 {
@@ -116,7 +117,7 @@ impl ScrollerState {
     }
 }
 
-impl<'a, Message, Renderer> Widget<Message, Renderer> for Offsetter<'a, Message, Renderer>
+impl<'a, Message, Renderer> Widget<Message, Renderer> for Scroller<'a, Message, Renderer>
 where
     Renderer: iced_native::Renderer,
 {
@@ -329,13 +330,12 @@ where
     }
 }
 
-impl<'a, Message, Renderer> From<Offsetter<'a, Message, Renderer>>
-    for Element<'a, Message, Renderer>
+impl<'a, Message, Renderer> From<Scroller<'a, Message, Renderer>> for Element<'a, Message, Renderer>
 where
     Renderer: iced_native::Renderer + 'a,
     Message: 'a,
 {
-    fn from(responsive: Offsetter<'a, Message, Renderer>) -> Self {
+    fn from(responsive: Scroller<'a, Message, Renderer>) -> Self {
         Self::new(responsive)
     }
 }

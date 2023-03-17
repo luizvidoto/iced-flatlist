@@ -1,8 +1,8 @@
 use fake::faker::name::en::Name;
 use fake::{Dummy, Fake, Faker};
-use iced::widget::{button, container, text};
+use iced::widget::{button, container, scrollable, text};
 use iced::{Element, Length, Sandbox, Settings};
-use iced_flatlist::{get_start_end_pos, Scroller};
+// use iced_flatlist::{get_start_end_pos, Scroller};
 use iced_native::{column, row};
 
 pub fn main() {
@@ -66,7 +66,7 @@ impl Sandbox for Example {
 
     fn new() -> Self {
         let mut users: Vec<User> = vec![];
-        for n in 0..100_000 {
+        for n in 0..1_000 {
             users.push(User::new(n));
         }
         Example { users }
@@ -85,25 +85,16 @@ impl Sandbox for Example {
     }
 
     fn view(&self) -> Element<Message> {
-        let row_h = 40.0;
-        let lazy_content = iced_lazy::responsive(move |size| {
-            let users_clone: Vec<_> = self.users.iter().collect();
-            Scroller::new(size, 5.0, move |scroll_pos| {
-                let view_h = size.height;
-                let scroll_pos_pct = scroll_pos / view_h;
-                let (start, end) =
-                    get_start_end_pos(users_clone.len(), scroll_pos_pct, row_h, view_h);
-                users_clone[start..end]
-                    .iter()
-                    .fold(column![User::header()], |column, user| {
-                        column.push(user.view(row_h as u16))
-                    })
-                    .into()
+        let row_h = 40;
+        let rows: Element<_> = self
+            .users
+            .iter()
+            .fold(column![User::header()], |column, user| {
+                column.push(user.view(row_h as u16))
             })
-            .into()
-        });
+            .into();
 
-        container(lazy_content)
+        container(scrollable(rows))
             .width(Length::Fill)
             .height(Length::Fill)
             .center_x()
