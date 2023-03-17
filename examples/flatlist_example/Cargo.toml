@@ -1,5 +1,5 @@
 [package]
-name = "iced_flatlist_example_t"
+name = "iced_flatlist_example"
 version = "0.1.0"
 edition = "2021"
 authors = ["Luiz Otavio Cardi Vidoto <luiz.vidoto@hotmail.com>"]
@@ -10,6 +10,6 @@ authors = ["Luiz Otavio Cardi Vidoto <luiz.vidoto@hotmail.com>"]
 iced = { version = "0.5.2", features = ["tokio", "debug"] }
 iced_native = "0.6.1"
 iced_lazy = "0.2.0"
-iced_flatlist = { path="../" }
+iced_flatlist = { path="../../" }
 fake = { version = "2.5", features=['derive']}
 rand = "0.8.5"
