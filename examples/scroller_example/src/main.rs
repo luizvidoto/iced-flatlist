@@ -56,7 +56,7 @@ impl User {
             button(text("Details")).on_press(Message::DetailsPress(self.to_owned()))
         ]
         .width(Length::Fill)
-        .height(Length::Units(row_h))
+        .height(row_h)
         .into()
     }
 }
@@ -88,7 +88,10 @@ impl Sandbox for Example {
         let row_h = 40.0;
         let lazy_content = iced_lazy::responsive(move |size| {
             let users_clone: Vec<_> = self.users.iter().collect();
-            Scroller::new(size, 5.0, move |scroll_pos| {
+            let rows_fit = (size.height / row_h).floor() / 3.0;
+            let item_count = self.users.len();
+            let scroll_by = rows_fit / item_count as f32 * size.height;
+            Scroller::new(size, scroll_by, move |scroll_pos| {
                 let view_h = size.height;
                 let scroll_pos_pct = scroll_pos / view_h;
                 let (start, end) =

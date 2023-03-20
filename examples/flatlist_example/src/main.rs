@@ -56,7 +56,7 @@ impl User {
             button(text("Details")).on_press(Message::DetailsPress(self.to_owned()))
         ]
         .width(Length::Fill)
-        .height(Length::Units(row_h))
+        .height(row_h)
         .into()
     }
 }

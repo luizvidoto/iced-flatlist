@@ -38,7 +38,7 @@ where
             content: RefCell::new(Content {
                 offset: 0.0,
                 layout: layout::Node::new(Size::ZERO),
-                element: Element::new(horizontal_space(Length::Units(0))),
+                element: Element::new(horizontal_space(Length::Fixed(0.0))),
             }),
         }
     }
@@ -291,19 +291,29 @@ where
         )
     }
 
+    // fn overlay<'b>(
+    //     &'b self,
+    //     tree: &'b mut Tree,
+    //     layout: Layout<'_>,
+    //     renderer: &Renderer,
+    // ) -> Option<overlay::Element<'b, Message, Renderer>> {
+
+    // }
     fn overlay<'b>(
-        &'b self,
-        tree: &'b mut Tree,
+        &'b mut self,
+        state: &'b mut Tree,
         layout: Layout<'_>,
         renderer: &Renderer,
     ) -> Option<overlay::Element<'b, Message, Renderer>> {
-        let state = tree.state.downcast_ref::<State>();
+        use std::ops::DerefMut;
+
+        let state = state.state.downcast_ref::<State>();
 
         let overlay = OverlayBuilder {
             content: self.content.borrow_mut(),
             tree: state.tree.borrow_mut(),
             types: PhantomData,
-            overlay_builder: |content, tree| {
+            overlay_builder: |content: &mut RefMut<Content<_, _>>, tree| {
                 content.update(
                     tree,
                     renderer,
@@ -312,12 +322,17 @@ where
                     &self.view,
                 );
 
-                let content_layout =
-                    Layout::with_offset(layout.position() - Point::ORIGIN, &content.layout);
+                let Content {
+                    element,
+                    layout: content_layout,
+                    ..
+                } = content.deref_mut();
 
-                content
-                    .element
-                    .as_widget()
+                let content_layout =
+                    Layout::with_offset(layout.bounds().position() - Point::ORIGIN, content_layout);
+
+                element
+                    .as_widget_mut()
                     .overlay(tree, content_layout, renderer)
             },
         }
@@ -376,7 +391,7 @@ where
         self.with_overlay_maybe(|overlay| {
             let vector = position - overlay.position();
 
-            overlay.layout(renderer, bounds).translate(vector)
+            overlay.layout(renderer, bounds, vector).translate(vector)
         })
         .unwrap_or_default()
     }
