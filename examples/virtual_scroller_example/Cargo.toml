@@ -1,5 +1,5 @@
 [package]
-name = "iced_flatlist_example"
+name = "iced_flatlist_virtual_scroller"
 version = "0.1.0"
 edition = "2021"
 authors = ["Luiz Otavio Cardi Vidoto <luiz.vidoto@hotmail.com>"]

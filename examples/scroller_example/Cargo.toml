@@ -7,9 +7,9 @@ authors = ["Luiz Otavio Cardi Vidoto <luiz.vidoto@hotmail.com>"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-iced = { version = "0.8.0", features = ["tokio", "debug"] }
-iced_native = "0.9.1"
-iced_lazy = "0.5.0"
+iced = { path = "../../../iced/", features = ["tokio", "debug"] }
+iced_native = { path = "../../../iced/native/" }
+iced_lazy = { path = "../../../iced/lazy/" }
 iced_flatlist = { path="../../" }
 fake = { version = "2.5", features=['derive']}
 rand = "0.8.5"
