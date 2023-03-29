@@ -9,7 +9,7 @@ use crate::get_start_end_pos;
 #[derive(Debug, Clone)]
 pub enum Message {
     SetScrollOffset(f32),
-    // SomeMsg(Message),
+    // ChildMessage,
 }
 
 pub struct VirtualScroller<T> {
@@ -17,7 +17,7 @@ pub struct VirtualScroller<T> {
     item_height: f32,
     view_height: f32,
     p_scroll_offset: f32,
-    // renderer: Box<dyn Fn(&T) -> Element<'a, Message, Renderer>>,
+    // render: Box<dyn Fn(&'a T) -> Element<'a, M, R> + 'a>,
 }
 
 impl<T> VirtualScroller<T> {
@@ -25,14 +25,14 @@ impl<T> VirtualScroller<T> {
         items: Vec<T>,
         item_height: f32,
         view_height: f32,
-        // renderer: impl Fn(&T) -> Element<'a, Message, Renderer>,
+        // render: impl Fn(&'a T) -> Element<'a, M, R> + 'a,
     ) -> Self {
         Self {
             items,
             item_height,
             view_height,
             p_scroll_offset: 0.0,
-            // renderer: Box::new(renderer),
+            // render: Box::new(render),
         }
     }
     pub fn update(&mut self, message: Message) {
@@ -60,11 +60,11 @@ impl<T> VirtualScroller<T> {
             .fold(
                 column![].height(Length::Fixed(total_height)),
                 |col, (i, item)| {
-                    // let el = (self.renderer)(item);
                     let el: Element<_> = text(format!("id: {}", start_index + i))
                         .height(Length::Fixed(self.item_height))
                         .width(Length::Fill)
                         .into();
+                    // let el = (self.render)(item);
                     col.push(el)
                 },
             )

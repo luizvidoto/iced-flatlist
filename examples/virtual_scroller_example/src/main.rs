@@ -11,7 +11,6 @@ pub fn main() {
 }
 
 struct Example {
-    users: Vec<User>,
     scroller: VirtualScroller<User>,
 }
 
@@ -77,8 +76,8 @@ impl Sandbox for Example {
         for n in 0..100_000 {
             users.push(User::new(n));
         }
-        let scroller = VirtualScroller::new(users.clone(), item_height, 400.0);
-        Example { users, scroller }
+        let scroller = VirtualScroller::new(users, item_height, 400.0);
+        Example { scroller }
     }
 
     fn title(&self) -> String {

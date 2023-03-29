@@ -87,7 +87,6 @@ impl Sandbox for Example {
     fn view(&self) -> Element<Message> {
         let row_h = 40.0;
         let lazy_content = iced_lazy::responsive(move |size| {
-            let users_clone: Vec<_> = self.users.iter().collect();
             let rows_fit = (size.height / row_h).floor() / 3.0;
             let item_count = self.users.len();
             let scroll_by = rows_fit / item_count as f32 * size.height;
@@ -95,8 +94,8 @@ impl Sandbox for Example {
                 let view_h = size.height;
                 let scroll_pos_pct = scroll_pos / view_h;
                 let (start, end) =
-                    get_start_end_pos(users_clone.len(), scroll_pos_pct, row_h, view_h);
-                users_clone[start..end]
+                    get_start_end_pos(self.users.len(), scroll_pos_pct, row_h, view_h);
+                self.users[start..end]
                     .iter()
                     .fold(column![User::header()], |column, user| {
                         column.push(user.view(row_h as u16))
