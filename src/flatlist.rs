@@ -1,6 +1,6 @@
 use iced::{Element, Size};
 
-use crate::Scroller;
+use crate::scroller::Scroller;
 
 pub fn flatlist<'a, Message, Renderer, T: Sized, I>(
     size: Size,
@@ -50,10 +50,10 @@ where
 pub fn get_start_end_pos(
     item_count: usize,
     scroll_pos_pct: f32,
-    row_h: f32,
-    view_h: f32,
+    row_height: f32,
+    view_height: f32,
 ) -> (usize, usize) {
-    let rows_fit = (view_h / row_h).floor() as usize;
+    let rows_fit = (view_height / row_height).floor() as usize;
     let start_min = (item_count as f32 * scroll_pos_pct).floor() as usize;
     let start_max = item_count.checked_sub(rows_fit).unwrap_or(0);
     let start = start_min.max(0).min(start_max);

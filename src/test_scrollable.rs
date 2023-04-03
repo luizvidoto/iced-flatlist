@@ -1,4 +1,5 @@
 //! Navigate an endless amount of content with a scrollbar.
+use iced::{Alignment, Padding};
 use iced_native::event::{self, Event};
 use iced_native::keyboard;
 use iced_native::layout;
@@ -6,9 +7,9 @@ use iced_native::mouse;
 use iced_native::overlay;
 use iced_native::renderer;
 use iced_native::touch;
-use iced_native::widget;
 use iced_native::widget::operation::{self, Operation};
 use iced_native::widget::tree::{self, Tree};
+use iced_native::widget::{self, Column};
 use iced_native::{
     Background, Clipboard, Color, Command, Element, Layout, Length, Pixels, Point, Rectangle,
     Shell, Size, Vector, Widget,
@@ -18,9 +19,9 @@ pub use iced_style::scrollable::StyleSheet;
 pub use operation::scrollable::RelativeOffset;
 
 pub mod style {
-    //! The styles of a [`Scrollable`].
+    //! The styles of a [`NewScrollable`].
     //!
-    //! [`Scrollable`]: iced_native::widget::Scrollable
+    //! [`NewScrollable`]: iced_native::widget::NewScrollable
     pub use iced_style::scrollable::{Scrollbar, Scroller};
 }
 
@@ -36,112 +37,102 @@ where
     height: Length,
     vertical: Properties,
     horizontal: Option<Properties>,
+    all_items: Vec<Element<'a, Message, Renderer>>,
+    item_height: f32,
+    // column: Column<'a, Message, Renderer>,
     content: Element<'a, Message, Renderer>,
     on_scroll: Option<Box<dyn Fn(RelativeOffset) -> Message + 'a>>,
     style: <Renderer::Theme as StyleSheet>::Style,
+    spacing: f32,
+    padding: Padding,
+    align_items: Alignment,
 }
 
 impl<'a, Message, Renderer> NewScrollable<'a, Message, Renderer>
 where
-    Renderer: iced_native::Renderer,
+    Message: 'a,
+    Renderer: 'a + iced_native::Renderer,
     Renderer::Theme: StyleSheet,
 {
-    /// Creates a new [`Scrollable`].
-    pub fn new(content: impl Into<Element<'a, Message, Renderer>>) -> Self {
+    /// Creates a new [`NewScrollable`].
+    pub fn new(
+        all_items: Vec<Element<'a, Message, Renderer>>,
+        item_height: f32,
+        content: impl Into<Element<'a, Message, Renderer>>,
+    ) -> Self {
         NewScrollable {
             id: None,
             height: Length::Shrink,
             vertical: Properties::default(),
             horizontal: None,
+            item_height,
+            all_items,
+            // column: Column::with_children(all_items).height(Length::Fixed(col_height)),
             content: content.into(),
             on_scroll: None,
             style: Default::default(),
+            spacing: 0.0,
+            padding: Padding::ZERO,
+            align_items: Alignment::Start,
         }
     }
 
-    /// Sets the [`Id`] of the [`Scrollable`].
+    /// Sets the [`Id`] of the [`NewScrollable`].
     pub fn id(mut self, id: Id) -> Self {
         self.id = Some(id);
         self
     }
 
-    /// Sets the height of the [`Scrollable`].
+    /// Sets the height of the [`NewScrollable`].
     pub fn height(mut self, height: impl Into<Length>) -> Self {
         self.height = height.into();
         self
     }
 
-    /// Configures the vertical scrollbar of the [`Scrollable`] .
+    /// Configures the vertical scrollbar of the [`NewScrollable`] .
     pub fn vertical_scroll(mut self, properties: Properties) -> Self {
         self.vertical = properties;
         self
     }
 
-    /// Configures the horizontal scrollbar of the [`Scrollable`] .
+    /// Configures the horizontal scrollbar of the [`NewScrollable`] .
     pub fn horizontal_scroll(mut self, properties: Properties) -> Self {
         self.horizontal = Some(properties);
         self
     }
 
-    /// Sets a function to call when the [`Scrollable`] is scrolled.
+    /// Sets a function to call when the [`NewScrollable`] is scrolled.
     ///
-    /// The function takes the new relative x & y offset of the [`Scrollable`]
+    /// The function takes the new relative x & y offset of the [`NewScrollable`]
     /// (e.g. `0` means beginning, while `1` means end).
     pub fn on_scroll(mut self, f: impl Fn(RelativeOffset) -> Message + 'a) -> Self {
         self.on_scroll = Some(Box::new(f));
         self
     }
 
-    /// Sets the style of the [`Scrollable`] .
+    /// Sets the style of the [`NewScrollable`] .
     pub fn style(mut self, style: impl Into<<Renderer::Theme as StyleSheet>::Style>) -> Self {
         self.style = style.into();
         self
     }
-}
 
-/// Properties of a scrollbar within a [`Scrollable`].
-#[derive(Debug)]
-pub struct Properties {
-    width: f32,
-    margin: f32,
-    scroller_width: f32,
-}
-
-impl Default for Properties {
-    fn default() -> Self {
-        Self {
-            width: 10.0,
-            margin: 0.0,
-            scroller_width: 10.0,
-        }
+    pub fn column_height(&self) -> f32 {
+        self.all_items.len() as f32 * self.item_height
     }
 }
 
-impl Properties {
-    /// Creates new [`Properties`] for use in a [`Scrollable`].
-    pub fn new() -> Self {
-        Self::default()
-    }
+pub fn filtered_items<'a, 'b, T>(all_items: &'a [T]) -> &'b [T]
+where
+    'a: 'b,
+{
+    &all_items[100..105]
+}
 
-    /// Sets the scrollbar width of the [`Scrollable`] .
-    /// Silently enforces a minimum width of 1.
-    pub fn width(mut self, width: impl Into<Pixels>) -> Self {
-        self.width = width.into().0.max(1.0);
-        self
-    }
-
-    /// Sets the scrollbar margin of the [`Scrollable`] .
-    pub fn margin(mut self, margin: impl Into<Pixels>) -> Self {
-        self.margin = margin.into().0;
-        self
-    }
-
-    /// Sets the scroller width of the [`Scrollable`] .
-    /// Silently enforces a minimum width of 1.
-    pub fn scroller_width(mut self, scroller_width: impl Into<Pixels>) -> Self {
-        self.scroller_width = scroller_width.into().0.max(1.0);
-        self
-    }
+pub fn mut_filtered_items<'a, 'b, T>(all_items: &'a mut [T]) -> &'b mut [T]
+where
+    'a: 'b,
+{
+    &mut all_items[100..105]
 }
 
 impl<'a, Message, Renderer> Widget<Message, Renderer> for NewScrollable<'a, Message, Renderer>
@@ -158,11 +149,11 @@ where
     }
 
     fn children(&self) -> Vec<Tree> {
-        vec![Tree::new(&self.content)]
+        self.all_items.iter().map(Tree::new).collect()
     }
 
     fn diff(&self, tree: &mut Tree) {
-        tree.diff_children(std::slice::from_ref(&self.content))
+        tree.diff_children(&self.all_items);
     }
 
     fn width(&self) -> Length {
@@ -174,14 +165,79 @@ where
     }
 
     fn layout(&self, renderer: &Renderer, limits: &layout::Limits) -> layout::Node {
-        layout(
+        let width = Widget::<Message, Renderer>::width(self);
+        let horizontal_enabled = self.horizontal.is_some();
+
+        // NEW CODE
+        //
+        let limits = limits
+            .max_height(f32::INFINITY)
+            .max_width(if horizontal_enabled {
+                f32::INFINITY
+            } else {
+                limits.max().width
+            })
+            .width(width)
+            .height(self.height);
+
+        let child_limits = layout::Limits::new(
+            Size::new(limits.min().width, 0.0),
+            Size::new(
+                if horizontal_enabled {
+                    f32::INFINITY
+                } else {
+                    limits.max().width
+                },
+                f32::MAX,
+            ),
+        );
+
+        let items_content = layout::flex::resolve(
+            layout::flex::Axis::Vertical,
             renderer,
-            limits,
-            Widget::<Message, Renderer>::width(self),
-            self.height,
-            self.horizontal.is_some(),
-            |renderer, limits| self.content.as_widget().layout(renderer, limits),
-        )
+            &child_limits,
+            self.padding,
+            self.spacing,
+            self.align_items,
+            filtered_items(&self.all_items),
+        );
+
+        let content_size = limits.resolve(items_content.size());
+        let col_size = Size::new(content_size.width, self.column_height());
+        let col_node = layout::Node::with_children(col_size, vec![items_content]);
+        let node_size = limits.resolve(col_size);
+        layout::Node::with_children(node_size, vec![col_node])
+
+        // ORIGINAL CODE
+        //
+        // let limits = limits
+        //     .max_height(f32::INFINITY)
+        //     .max_width(if horizontal_enabled {
+        //         f32::INFINITY
+        //     } else {
+        //         limits.max().width
+        //     })
+        //     .width(width)
+        //     .height(self.height);
+
+        // let child_limits = layout::Limits::new(
+        //     Size::new(limits.min().width, 0.0),
+        //     Size::new(
+        //         if horizontal_enabled {
+        //             f32::INFINITY
+        //         } else {
+        //             limits.max().width
+        //         },
+        //         f32::MAX,
+        //     ),
+        // );
+
+        // let content = self.content.as_widget().layout(renderer, &child_limits);
+        // let content_size = content.size();
+        // dbg!(content_size);
+        // let size = limits.resolve(content_size);
+        // dbg!(size);
+        // layout::Node::with_children(size, vec![content])
     }
 
     fn operate(
@@ -196,12 +252,15 @@ where
         operation.scrollable(state, self.id.as_ref().map(|id| &id.0));
 
         operation.container(self.id.as_ref().map(|id| &id.0), &mut |operation| {
-            self.content.as_widget().operate(
-                &mut tree.children[0],
-                layout.children().next().unwrap(),
-                renderer,
-                operation,
-            );
+            filtered_items(&self.all_items)
+                .iter()
+                .zip(&mut tree.children)
+                .zip(layout.children())
+                .for_each(|((child, state), layout)| {
+                    child
+                        .as_widget()
+                        .operate(state, layout, renderer, operation);
+                })
         });
     }
 
@@ -215,28 +274,298 @@ where
         clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
     ) -> event::Status {
-        update(
-            tree.state.downcast_mut::<State>(),
-            event,
-            layout,
-            cursor_position,
-            clipboard,
-            shell,
+        // update(
+        //     tree.state.downcast_mut::<State>(),
+        //     event,
+        //     layout,
+        //     cursor_position,
+        //     clipboard,
+        //     shell,
+        //     &self.vertical,
+        //     self.horizontal.as_ref(),
+        //     &self.on_scroll,
+        //     |event, layout, cursor_position, clipboard, shell| {
+        //         self.mut_filtered_items()
+        //             .iter_mut()
+        //             .zip(&mut tree.children)
+        //             .zip(layout.children())
+        //             .map(|((child, state), layout)| {
+        //                 child.as_widget_mut().on_event(
+        //                     state,
+        //                     event.clone(),
+        //                     layout,
+        //                     cursor_position,
+        //                     renderer,
+        //                     clipboard,
+        //                     shell,
+        //                 )
+        //             })
+        //             .fold(event::Status::Ignored, event::Status::merge)
+        //     },
+        // )
+
+        // pub fn update<Message>(
+        //     state: &mut State,
+        //     event: Event,
+        //     layout: Layout<'_>,
+        //     cursor_position: Point,
+        //     clipboard: &mut dyn Clipboard,
+        //     shell: &mut Shell<'_, Message>,
+        //     vertical: &Properties,
+        //     horizontal: Option<&Properties>,
+        //     on_scroll: &Option<Box<dyn Fn(RelativeOffset) -> Message + '_>>,
+        //     update_content: impl FnOnce(
+        //         Event,
+        //         Layout<'_>,
+        //         Point,
+        //         &mut dyn Clipboard,
+        //         &mut Shell<'_, Message>,
+        //     ) -> event::Status,
+        // ) -> event::Status {
+
+        let state = tree.state.downcast_mut::<State>();
+        let bounds = layout.bounds();
+        let mouse_over_scrollable = bounds.contains(cursor_position);
+
+        let content = layout.children().next().unwrap();
+        let content_bounds = content.bounds();
+
+        let scrollbars = Scrollbars::new(
+            state,
             &self.vertical,
             self.horizontal.as_ref(),
-            &self.on_scroll,
-            |event, layout, cursor_position, clipboard, shell| {
-                self.content.as_widget_mut().on_event(
-                    &mut tree.children[0],
-                    event,
-                    layout,
-                    cursor_position,
-                    renderer,
-                    clipboard,
-                    shell,
-                )
-            },
-        )
+            bounds,
+            content_bounds,
+        );
+
+        let (mouse_over_y_scrollbar, mouse_over_x_scrollbar) =
+            scrollbars.is_mouse_over(cursor_position);
+
+        let event_status = {
+            let cursor_position =
+                if mouse_over_scrollable && !(mouse_over_y_scrollbar || mouse_over_x_scrollbar) {
+                    cursor_position + state.offset(bounds, content_bounds)
+                } else {
+                    // TODO: Make `cursor_position` an `Option<Point>` so we can encode
+                    // cursor availability.
+                    // This will probably happen naturally once we add multi-window
+                    // support.
+                    Point::new(-1.0, -1.0)
+                };
+
+            mut_filtered_items(&mut self.all_items)
+                .iter_mut()
+                .zip(&mut tree.children)
+                .zip(layout.children())
+                .map(|((child, state), layout)| {
+                    child.as_widget_mut().on_event(
+                        state,
+                        event.clone(),
+                        layout,
+                        cursor_position,
+                        renderer,
+                        clipboard,
+                        shell,
+                    )
+                })
+                .fold(event::Status::Ignored, event::Status::merge)
+        };
+
+        if let event::Status::Captured = event_status {
+            return event::Status::Captured;
+        }
+
+        if let Event::Keyboard(keyboard::Event::ModifiersChanged(modifiers)) = event {
+            state.keyboard_modifiers = modifiers;
+
+            return event::Status::Ignored;
+        }
+
+        if mouse_over_scrollable {
+            match event {
+                Event::Mouse(mouse::Event::WheelScrolled { delta }) => {
+                    let delta = match delta {
+                        mouse::ScrollDelta::Lines { x, y } => {
+                            // TODO: Configurable speed/friction (?)
+                            let movement = if state.keyboard_modifiers.shift() {
+                                Vector::new(y, x)
+                            } else {
+                                Vector::new(x, y)
+                            };
+
+                            movement * 60.0
+                        }
+                        mouse::ScrollDelta::Pixels { x, y } => Vector::new(x, y),
+                    };
+
+                    state.scroll(delta, bounds, content_bounds);
+
+                    publish_on_scroll_msg(state, &self.on_scroll, bounds, content_bounds, shell);
+
+                    return event::Status::Captured;
+                }
+                Event::Touch(event)
+                    if state.scroll_area_touched_at.is_some()
+                        || !mouse_over_y_scrollbar && !mouse_over_x_scrollbar =>
+                {
+                    match event {
+                        touch::Event::FingerPressed { .. } => {
+                            state.scroll_area_touched_at = Some(cursor_position);
+                        }
+                        touch::Event::FingerMoved { .. } => {
+                            if let Some(scroll_box_touched_at) = state.scroll_area_touched_at {
+                                let delta = Vector::new(
+                                    cursor_position.x - scroll_box_touched_at.x,
+                                    cursor_position.y - scroll_box_touched_at.y,
+                                );
+
+                                state.scroll(delta, bounds, content_bounds);
+
+                                state.scroll_area_touched_at = Some(cursor_position);
+
+                                publish_on_scroll_msg(
+                                    state,
+                                    &self.on_scroll,
+                                    bounds,
+                                    content_bounds,
+                                    shell,
+                                );
+                            }
+                        }
+                        touch::Event::FingerLifted { .. } | touch::Event::FingerLost { .. } => {
+                            state.scroll_area_touched_at = None;
+                        }
+                    }
+
+                    return event::Status::Captured;
+                }
+                _ => {}
+            }
+        }
+
+        if let Some(scroller_grabbed_at) = state.y_scroller_grabbed_at {
+            match event {
+                Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left))
+                | Event::Touch(touch::Event::FingerLifted { .. })
+                | Event::Touch(touch::Event::FingerLost { .. }) => {
+                    state.y_scroller_grabbed_at = None;
+
+                    return event::Status::Captured;
+                }
+                Event::Mouse(mouse::Event::CursorMoved { .. })
+                | Event::Touch(touch::Event::FingerMoved { .. }) => {
+                    if let Some(scrollbar) = scrollbars.y {
+                        state.scroll_y_to(
+                            scrollbar.scroll_percentage_y(scroller_grabbed_at, cursor_position),
+                            bounds,
+                            content_bounds,
+                        );
+
+                        publish_on_scroll_msg(
+                            state,
+                            &self.on_scroll,
+                            bounds,
+                            content_bounds,
+                            shell,
+                        );
+
+                        return event::Status::Captured;
+                    }
+                }
+                _ => {}
+            }
+        } else if mouse_over_y_scrollbar {
+            match event {
+                Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left))
+                | Event::Touch(touch::Event::FingerPressed { .. }) => {
+                    if let (Some(scroller_grabbed_at), Some(scrollbar)) =
+                        (scrollbars.grab_y_scroller(cursor_position), scrollbars.y)
+                    {
+                        state.scroll_y_to(
+                            scrollbar.scroll_percentage_y(scroller_grabbed_at, cursor_position),
+                            bounds,
+                            content_bounds,
+                        );
+
+                        state.y_scroller_grabbed_at = Some(scroller_grabbed_at);
+
+                        publish_on_scroll_msg(
+                            state,
+                            &self.on_scroll,
+                            bounds,
+                            content_bounds,
+                            shell,
+                        );
+                    }
+
+                    return event::Status::Captured;
+                }
+                _ => {}
+            }
+        }
+
+        if let Some(scroller_grabbed_at) = state.x_scroller_grabbed_at {
+            match event {
+                Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left))
+                | Event::Touch(touch::Event::FingerLifted { .. })
+                | Event::Touch(touch::Event::FingerLost { .. }) => {
+                    state.x_scroller_grabbed_at = None;
+
+                    return event::Status::Captured;
+                }
+                Event::Mouse(mouse::Event::CursorMoved { .. })
+                | Event::Touch(touch::Event::FingerMoved { .. }) => {
+                    if let Some(scrollbar) = scrollbars.x {
+                        state.scroll_x_to(
+                            scrollbar.scroll_percentage_x(scroller_grabbed_at, cursor_position),
+                            bounds,
+                            content_bounds,
+                        );
+
+                        publish_on_scroll_msg(
+                            state,
+                            &self.on_scroll,
+                            bounds,
+                            content_bounds,
+                            shell,
+                        );
+                    }
+
+                    return event::Status::Captured;
+                }
+                _ => {}
+            }
+        } else if mouse_over_x_scrollbar {
+            match event {
+                Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left))
+                | Event::Touch(touch::Event::FingerPressed { .. }) => {
+                    if let (Some(scroller_grabbed_at), Some(scrollbar)) =
+                        (scrollbars.grab_x_scroller(cursor_position), scrollbars.x)
+                    {
+                        state.scroll_x_to(
+                            scrollbar.scroll_percentage_x(scroller_grabbed_at, cursor_position),
+                            bounds,
+                            content_bounds,
+                        );
+
+                        state.x_scroller_grabbed_at = Some(scroller_grabbed_at);
+
+                        publish_on_scroll_msg(
+                            state,
+                            &self.on_scroll,
+                            bounds,
+                            content_bounds,
+                            shell,
+                        );
+
+                        return event::Status::Captured;
+                    }
+                }
+                _ => {}
+            }
+        }
+
+        event::Status::Ignored
     }
 
     fn draw(
@@ -259,15 +588,21 @@ where
             self.horizontal.as_ref(),
             &self.style,
             |renderer, layout, cursor_position, viewport| {
-                self.content.as_widget().draw(
-                    &tree.children[0],
-                    renderer,
-                    theme,
-                    style,
-                    layout,
-                    cursor_position,
-                    viewport,
-                )
+                for ((child, state), layout) in filtered_items(&self.all_items)
+                    .iter()
+                    .zip(&tree.children)
+                    .zip(layout.children())
+                {
+                    child.as_widget().draw(
+                        state,
+                        renderer,
+                        theme,
+                        style,
+                        layout,
+                        cursor_position,
+                        viewport,
+                    );
+                }
             },
         )
     }
@@ -287,13 +622,21 @@ where
             &self.vertical,
             self.horizontal.as_ref(),
             |layout, cursor_position, viewport| {
-                self.content.as_widget().mouse_interaction(
-                    &tree.children[0],
-                    layout,
-                    cursor_position,
-                    viewport,
-                    renderer,
-                )
+                filtered_items(&self.all_items)
+                    .iter()
+                    .zip(&tree.children)
+                    .zip(layout.children())
+                    .map(|((child, state), layout)| {
+                        child.as_widget().mouse_interaction(
+                            state,
+                            layout,
+                            cursor_position,
+                            viewport,
+                            renderer,
+                        )
+                    })
+                    .max()
+                    .unwrap_or_default()
             },
         )
     }
@@ -304,24 +647,21 @@ where
         layout: Layout<'_>,
         renderer: &Renderer,
     ) -> Option<overlay::Element<'b, Message, Renderer>> {
-        self.content
-            .as_widget_mut()
-            .overlay(
-                &mut tree.children[0],
-                layout.children().next().unwrap(),
-                renderer,
-            )
-            .map(|overlay| {
-                let bounds = layout.bounds();
-                let content_layout = layout.children().next().unwrap();
-                let content_bounds = content_layout.bounds();
-                let offset = tree
-                    .state
-                    .downcast_ref::<State>()
-                    .offset(bounds, content_bounds);
+        let bounds = layout.bounds();
+        let content_layout = layout.children().next().unwrap();
+        let content_bounds = content_layout.bounds();
+        let offset = tree
+            .state
+            .downcast_ref::<State>()
+            .offset(bounds, content_bounds);
+        let children_overlay = overlay::from_children(
+            mut_filtered_items(&mut self.all_items),
+            tree,
+            layout,
+            renderer,
+        );
 
-                overlay.translate(Vector::new(-offset.x, -offset.y))
-            })
+        children_overlay.map(|overlay| overlay.translate(Vector::new(-offset.x, -offset.y)))
     }
 }
 
@@ -337,7 +677,7 @@ where
     }
 }
 
-/// The identifier of a [`Scrollable`].
+/// The identifier of a [`NewScrollable`].
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Id(widget::Id);
 
@@ -361,50 +701,13 @@ impl From<Id> for widget::Id {
     }
 }
 
-/// Produces a [`Command`] that snaps the [`Scrollable`] with the given [`Id`]
+/// Produces a [`Command`] that snaps the [`NewScrollable`] with the given [`Id`]
 /// to the provided `percentage` along the x & y axis.
-pub fn _snap_to<Message: 'static>(id: Id, offset: RelativeOffset) -> Command<Message> {
+pub fn snap_to<Message: 'static>(id: Id, offset: RelativeOffset) -> Command<Message> {
     Command::widget(operation::scrollable::snap_to(id.0, offset))
 }
 
-/// Computes the layout of a [`Scrollable`].
-pub fn layout<Renderer>(
-    renderer: &Renderer,
-    limits: &layout::Limits,
-    width: Length,
-    height: Length,
-    horizontal_enabled: bool,
-    layout_content: impl FnOnce(&Renderer, &layout::Limits) -> layout::Node,
-) -> layout::Node {
-    let limits = limits
-        .max_height(f32::INFINITY)
-        .max_width(if horizontal_enabled {
-            f32::INFINITY
-        } else {
-            limits.max().width
-        })
-        .width(width)
-        .height(height);
-
-    let child_limits = layout::Limits::new(
-        Size::new(limits.min().width, 0.0),
-        Size::new(
-            if horizontal_enabled {
-                f32::INFINITY
-            } else {
-                limits.max().width
-            },
-            f32::MAX,
-        ),
-    );
-
-    let content = layout_content(renderer, &child_limits);
-    let size = limits.resolve(content.size());
-
-    layout::Node::with_children(size, vec![content])
-}
-
-/// Processes an [`Event`] and updates the [`State`] of a [`Scrollable`]
+/// Processes an [`Event`] and updates the [`State`] of a [`NewScrollable`]
 /// accordingly.
 pub fn update<Message>(
     state: &mut State,
@@ -438,9 +741,7 @@ pub fn update<Message>(
     let event_status = {
         let cursor_position =
             if mouse_over_scrollable && !(mouse_over_y_scrollbar || mouse_over_x_scrollbar) {
-                // CHANGED from
-                //   cursor_position + state.offset(bounds, content_bounds)
-                cursor_position
+                cursor_position + state.offset(bounds, content_bounds)
             } else {
                 // TODO: Make `cursor_position` an `Option<Point>` so we can encode
                 // cursor availability.
@@ -481,7 +782,7 @@ pub fn update<Message>(
 
                 state.scroll(delta, bounds, content_bounds);
 
-                notify_on_scroll(state, on_scroll, bounds, content_bounds, shell);
+                publish_on_scroll_msg(state, on_scroll, bounds, content_bounds, shell);
 
                 return event::Status::Captured;
             }
@@ -504,7 +805,7 @@ pub fn update<Message>(
 
                             state.scroll_area_touched_at = Some(cursor_position);
 
-                            notify_on_scroll(state, on_scroll, bounds, content_bounds, shell);
+                            publish_on_scroll_msg(state, on_scroll, bounds, content_bounds, shell);
                         }
                     }
                     touch::Event::FingerLifted { .. } | touch::Event::FingerLost { .. } => {
@@ -536,7 +837,7 @@ pub fn update<Message>(
                         content_bounds,
                     );
 
-                    notify_on_scroll(state, on_scroll, bounds, content_bounds, shell);
+                    publish_on_scroll_msg(state, on_scroll, bounds, content_bounds, shell);
 
                     return event::Status::Captured;
                 }
@@ -558,7 +859,7 @@ pub fn update<Message>(
 
                     state.y_scroller_grabbed_at = Some(scroller_grabbed_at);
 
-                    notify_on_scroll(state, on_scroll, bounds, content_bounds, shell);
+                    publish_on_scroll_msg(state, on_scroll, bounds, content_bounds, shell);
                 }
 
                 return event::Status::Captured;
@@ -585,7 +886,7 @@ pub fn update<Message>(
                         content_bounds,
                     );
 
-                    notify_on_scroll(state, on_scroll, bounds, content_bounds, shell);
+                    publish_on_scroll_msg(state, on_scroll, bounds, content_bounds, shell);
                 }
 
                 return event::Status::Captured;
@@ -607,7 +908,7 @@ pub fn update<Message>(
 
                     state.x_scroller_grabbed_at = Some(scroller_grabbed_at);
 
-                    notify_on_scroll(state, on_scroll, bounds, content_bounds, shell);
+                    publish_on_scroll_msg(state, on_scroll, bounds, content_bounds, shell);
 
                     return event::Status::Captured;
                 }
@@ -619,7 +920,7 @@ pub fn update<Message>(
     event::Status::Ignored
 }
 
-/// Computes the current [`mouse::Interaction`] of a [`Scrollable`].
+/// Computes the current [`mouse::Interaction`] of a [`NewScrollable`].
 pub fn mouse_interaction(
     state: &State,
     layout: Layout<'_>,
@@ -642,36 +943,28 @@ pub fn mouse_interaction(
     if (mouse_over_x_scrollbar || mouse_over_y_scrollbar) || state.scrollers_grabbed() {
         mouse::Interaction::Idle
     } else {
-        let _offset = state.offset(bounds, content_bounds);
+        let offset = state.offset(bounds, content_bounds);
 
         let cursor_position =
             if mouse_over_scrollable && !(mouse_over_y_scrollbar || mouse_over_x_scrollbar) {
-                // CHANGED from
-                //       cursor_position + offset
-                cursor_position
+                cursor_position + offset
             } else {
                 Point::new(-1.0, -1.0)
             };
 
-        // CHANGED from
-        // &Rectangle {
-        //     y: bounds.y + offset.y,
-        //     x: bounds.x + offset.x,
-        //     ..bounds
-        // },
         content_interaction(
             content_layout,
             cursor_position,
             &Rectangle {
-                y: bounds.y,
-                x: bounds.x,
+                y: bounds.y + offset.y,
+                x: bounds.x + offset.x,
                 ..bounds
             },
         )
     }
 }
 
-/// Draws a [`Scrollable`].
+/// Draws a [`NewScrollable`].
 pub fn draw<Renderer>(
     state: &State,
     renderer: &mut Renderer,
@@ -696,39 +989,33 @@ pub fn draw<Renderer>(
     let (mouse_over_y_scrollbar, mouse_over_x_scrollbar) =
         scrollbars.is_mouse_over(cursor_position);
 
-    let _offset = state.offset(bounds, content_bounds);
+    let offset = state.offset(bounds, content_bounds);
 
     let cursor_position =
         if mouse_over_scrollable && !(mouse_over_x_scrollbar || mouse_over_y_scrollbar) {
-            // CHANGED from
-            // cursor_position + offset
-            cursor_position
+            cursor_position + offset
         } else {
             Point::new(-1.0, -1.0)
         };
 
     // Draw inner content
-    if scrollbars.active() {
-        renderer.with_layer(bounds, |renderer| {
-            // CHANGED from Vector::new(-offset.x, -offset.y)
-            // to Vector::new(0.0,0.0)
-            renderer.with_translation(Vector::new(0.0, 0.0), |renderer| {
-                // CHANGED from
-                //        x: bounds.x + offset.x,
-                //        y: bounds.y + offset.y,
-                draw_content(
-                    renderer,
-                    content_layout,
-                    cursor_position,
-                    &Rectangle {
-                        x: bounds.x,
-                        y: bounds.y,
-                        ..bounds
-                    },
-                );
-            });
-        });
+    renderer.with_layer(bounds, |renderer| {
+        // CHANGED to not use translation
+        // from: with_translation Vector::new(-offset.x, -offset.y),
+        draw_content(
+            renderer,
+            content_layout,
+            cursor_position,
+            &Rectangle {
+                x: bounds.x,
+                y: bounds.y,
+                ..bounds
+            },
+        );
+    });
 
+    if scrollbars.active() {
+        // --- START RENDER SCROLLBAR ---
         let draw_scrollbar =
             |renderer: &mut Renderer, style: style::Scrollbar, scrollbar: &Scrollbar| {
                 //track
@@ -799,24 +1086,11 @@ pub fn draw<Renderer>(
                 }
             },
         );
-    } else {
-        // CHANGED from
-        //        x: bounds.x + offset.x,
-        //        y: bounds.y + offset.y,
-        draw_content(
-            renderer,
-            content_layout,
-            cursor_position,
-            &Rectangle {
-                x: bounds.x,
-                y: bounds.y,
-                ..bounds
-            },
-        );
+        // --- END RENDER SCROLLBAR ---
     }
 }
 
-fn notify_on_scroll<Message>(
+fn publish_on_scroll_msg<Message>(
     state: &State,
     on_scroll: &Option<Box<dyn Fn(RelativeOffset) -> Message + '_>>,
     bounds: Rectangle,
@@ -827,20 +1101,12 @@ fn notify_on_scroll<Message>(
         if content_bounds.width <= bounds.width && content_bounds.height <= bounds.height {
             return;
         }
-
-        let x = state.offset_x.absolute(bounds.width, content_bounds.width)
-            / (content_bounds.width - bounds.width);
-
-        let y = state
-            .offset_y
-            .absolute(bounds.height, content_bounds.height)
-            / (content_bounds.height - bounds.height);
-
-        shell.publish(on_scroll(RelativeOffset { x, y }))
+        let relative_offset = state.relative_offset(bounds, content_bounds);
+        shell.publish(on_scroll(relative_offset))
     }
 }
 
-/// The local state of a [`Scrollable`].
+/// The local state of a [`NewScrollable`].
 #[derive(Debug, Clone, Copy)]
 pub struct State {
     scroll_area_touched_at: Option<Point>,
@@ -892,7 +1158,7 @@ impl State {
     }
 
     /// Apply a scrolling offset to the current [`State`], given the bounds of
-    /// the [`Scrollable`] and its contents.
+    /// the [`NewScrollable`] and its contents.
     pub fn scroll(&mut self, delta: Vector<f32>, bounds: Rectangle, content_bounds: Rectangle) {
         if bounds.height < content_bounds.height {
             self.offset_y = Offset::Absolute(
@@ -909,7 +1175,7 @@ impl State {
         }
     }
 
-    /// Scrolls the [`Scrollable`] to a relative amount along the y axis.
+    /// Scrolls the [`NewScrollable`] to a relative amount along the y axis.
     ///
     /// `0` represents scrollbar at the beginning, while `1` represents scrollbar at
     /// the end.
@@ -918,7 +1184,7 @@ impl State {
         self.unsnap(bounds, content_bounds);
     }
 
-    /// Scrolls the [`Scrollable`] to a relative amount along the x axis.
+    /// Scrolls the [`NewScrollable`] to a relative amount along the x axis.
     ///
     /// `0` represents scrollbar at the beginning, while `1` represents scrollbar at
     /// the end.
@@ -934,7 +1200,7 @@ impl State {
     }
 
     /// Unsnaps the current scroll position, if snapped, given the bounds of the
-    /// [`Scrollable`] and its contents.
+    /// [`NewScrollable`] and its contents.
     pub fn unsnap(&mut self, bounds: Rectangle, content_bounds: Rectangle) {
         self.offset_x =
             Offset::Absolute(self.offset_x.absolute(bounds.width, content_bounds.width));
@@ -943,7 +1209,7 @@ impl State {
     }
 
     /// Returns the scrolling offset of the [`State`], given the bounds of the
-    /// [`Scrollable`] and its contents.
+    /// [`NewScrollable`] and its contents.
     pub fn offset(&self, bounds: Rectangle, content_bounds: Rectangle) -> Vector {
         Vector::new(
             self.offset_x.absolute(bounds.width, content_bounds.width),
@@ -955,6 +1221,15 @@ impl State {
     pub fn scrollers_grabbed(&self) -> bool {
         self.x_scroller_grabbed_at.is_some() || self.y_scroller_grabbed_at.is_some()
     }
+
+    pub fn relative_offset(&self, bounds: Rectangle, content_bounds: Rectangle) -> RelativeOffset {
+        let x = self.offset_x.absolute(bounds.width, content_bounds.width)
+            / (content_bounds.width - bounds.width);
+
+        let y = self.offset_y.absolute(bounds.height, content_bounds.height)
+            / (content_bounds.height - bounds.height);
+        RelativeOffset { x, y }
+    }
 }
 
 #[derive(Debug)]
@@ -965,7 +1240,7 @@ struct Scrollbars {
 }
 
 impl Scrollbars {
-    /// Create y and/or x scrollbar(s) if content is overflowing the [`Scrollable`] bounds.
+    /// Create y and/or x scrollbar(s) if content is overflowing the [`NewScrollable`] bounds.
     fn new(
         state: &State,
         vertical: &Properties,
@@ -1144,7 +1419,7 @@ impl Scrollbars {
     }
 }
 
-/// The scrollbar of a [`Scrollable`].
+/// The scrollbar of a [`NewScrollable`].
 #[derive(Debug, Copy, Clone)]
 struct Scrollbar {
     /// The total bounds of the [`Scrollbar`], including the scrollbar, the scroller,
@@ -1192,4 +1467,49 @@ impl Scrollbar {
 struct Scroller {
     /// The bounds of the [`Scroller`].
     bounds: Rectangle,
+}
+
+/// Properties of a scrollbar within a [`NewScrollable`].
+#[derive(Debug)]
+pub struct Properties {
+    width: f32,
+    margin: f32,
+    scroller_width: f32,
+}
+
+impl Default for Properties {
+    fn default() -> Self {
+        Self {
+            width: 10.0,
+            margin: 0.0,
+            scroller_width: 10.0,
+        }
+    }
+}
+
+impl Properties {
+    /// Creates new [`Properties`] for use in a [`NewScrollable`].
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Sets the scrollbar width of the [`NewScrollable`] .
+    /// Silently enforces a minimum width of 1.
+    pub fn width(mut self, width: impl Into<Pixels>) -> Self {
+        self.width = width.into().0.max(1.0);
+        self
+    }
+
+    /// Sets the scrollbar margin of the [`NewScrollable`] .
+    pub fn margin(mut self, margin: impl Into<Pixels>) -> Self {
+        self.margin = margin.into().0;
+        self
+    }
+
+    /// Sets the scroller width of the [`NewScrollable`] .
+    /// Silently enforces a minimum width of 1.
+    pub fn scroller_width(mut self, scroller_width: impl Into<Pixels>) -> Self {
+        self.scroller_width = scroller_width.into().0.max(1.0);
+        self
+    }
 }

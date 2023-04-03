@@ -7,10 +7,10 @@ authors = ["Luiz Otavio Cardi Vidoto <luiz.vidoto@hotmail.com>"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-iced = { path = "../iced/", features = ["tokio", "debug"] }
-iced_native = { path = "../iced/native/" }
-iced_style = { path = "../iced/style/" }
-iced_lazy = { path = "../iced/lazy/" }
+iced = { version = "0.8.0", features = ["tokio", "debug"] }
+iced_native = { version = "0.9.1" }
+iced_lazy = { version = "0.5.0" }
+iced_style = { version = "0.7.0" }
 ouroboros = "0.15.5"
 
 [workspace]

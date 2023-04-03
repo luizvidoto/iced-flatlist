@@ -8,8 +8,8 @@ authors = ["Luiz Otavio Cardi Vidoto <luiz.vidoto@hotmail.com>"]
 
 [dependencies]
 iced = { version = "0.8.0", features = ["tokio", "debug"] }
-iced_native = "0.9.1"
-iced_lazy = "0.5.0"
+iced_native = { version = "0.9.1" }
+iced_lazy = { version = "0.5.0" }
 iced_flatlist = { path="../../" }
 fake = { version = "2.5", features=['derive']}
 rand = "0.8.5"

@@ -1,78 +1,96 @@
-use iced::{
-    widget::{column, text},
-    Element, Length,
-};
-use iced_native::widget::NewScrollable;
+use iced::widget::{container, text, Column};
+use iced::{Element, Length};
 
 use crate::get_start_end_pos;
+use crate::new_scrollable::NewScrollable;
+
+pub trait WithView {
+    type Message: std::fmt::Debug + Send;
+    fn view(&self) -> Element<'_, Self::Message>;
+}
 
 #[derive(Debug, Clone)]
 pub enum Message {
     SetScrollOffset(f32),
-    // ChildMessage,
 }
 
-pub struct VirtualScroller<T> {
+pub struct VirtualScroller<T>
+where
+    T: WithView,
+{
     items: Vec<T>,
-    item_height: f32,
-    view_height: f32,
     p_scroll_offset: f32,
-    // render: Box<dyn Fn(&'a T) -> Element<'a, M, R> + 'a>,
+    item_height: f32,
 }
 
-impl<T> VirtualScroller<T> {
-    pub fn new(
-        items: Vec<T>,
-        item_height: f32,
-        view_height: f32,
-        // render: impl Fn(&'a T) -> Element<'a, M, R> + 'a,
-    ) -> Self {
+impl<T> VirtualScroller<T>
+where
+    T: WithView,
+{
+    pub fn new(items: impl IntoIterator<Item = T>, item_height: f32) -> Self {
         Self {
-            items,
+            items: items.into_iter().collect(),
             item_height,
-            view_height,
             p_scroll_offset: 0.0,
-            // render: Box::new(render),
         }
     }
+
     pub fn update(&mut self, message: Message) {
         match message {
-            Message::SetScrollOffset(offset) => {
-                self.p_scroll_offset = offset;
-            } // Message::SomeMsg(msg) => {
-              //     todo!()
-              // }
+            Message::SetScrollOffset(offset) => self.p_scroll_offset = offset,
         }
     }
 
-    pub fn view(&self) -> Element<Message> {
-        let total_height = self.items.len() as f32 * self.item_height;
+    pub fn view(&self, view_height: f32) -> Element<'_, Message> {
+        let items_len = self.items.len();
+        let total_height = items_len as f32 * self.item_height;
         let (start_index, end_index) = get_start_end_pos(
-            self.items.len(),
+            items_len,
             self.p_scroll_offset,
             self.item_height,
-            self.view_height,
+            view_height,
         );
 
-        let content: Element<_> = self.items[start_index..end_index]
-            .iter()
-            .enumerate()
-            .fold(
-                column![].height(Length::Fixed(total_height)),
-                |col, (i, item)| {
-                    let el: Element<_> = text(format!("id: {}", start_index + i))
-                        .height(Length::Fixed(self.item_height))
-                        .width(Length::Fill)
-                        .into();
-                    // let el = (self.render)(item);
-                    col.push(el)
-                },
-            )
-            .into();
+        // cant make this work :(
+        let visible_items =
+            create_visible_items(self.items.iter(), start_index, end_index, total_height);
 
-        let scroller =
-            NewScrollable::new(content).on_scroll(|r_off| Message::SetScrollOffset(r_off.y));
+        let scrollable =
+            NewScrollable::new(visible_items).on_scroll(|r_off| Message::SetScrollOffset(r_off.y));
 
-        scroller.into()
+        container(text("test"))
+            .width(Length::Fill)
+            .height(Length::Fixed(view_height))
+            .center_x()
+            .center_y()
+            .into()
     }
+}
+
+fn create_visible_items<'a, T, I, Message>(
+    items: I,
+    start_index: usize,
+    end_index: usize,
+    total_height: f32,
+) -> Element<'a, Message>
+where
+    T: 'a + Into<Element<'a, Message>>,
+    I: 'a + IntoIterator<Item = &'a T>,
+    Message: 'a,
+{
+    items
+        .into_iter()
+        .enumerate()
+        .filter_map(|(idx, item)| {
+            if idx >= start_index && idx < end_index {
+                Some(item)
+            } else {
+                None
+            }
+        })
+        .fold(
+            Column::new().height(Length::Fixed(total_height)),
+            |col, item| col.push(<T as Into<Element<'a, Message>>>::into(*item)),
+        )
+        .into()
 }
