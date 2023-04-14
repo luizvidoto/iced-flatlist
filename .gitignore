@@ -2,3 +2,5 @@
 Cargo.lock
 
 /examples/virtual_scroller_example2/
+/examples/flatlist_example/
+/examples/scroller_example/
